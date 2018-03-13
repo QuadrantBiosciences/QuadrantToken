@@ -26,8 +26,8 @@ contract DutchAuction is Pausable {
     uint constant public goal_plus_8 = 8 hours;
     
     //Bonus tiers and percentange bonus per tier  
-    uint constant tier1Time = 48 hours;
-    uint constant tier2Time = 72 hours;
+    uint constant tier1Time = 24 hours;
+    uint constant tier2Time = 48 hours;
     uint constant tier1Bonus = 10;
     uint constant tier2Bonus = 5;
     
