@@ -1,0 +1,17 @@
+{
+  "0": {
+    "resident": "0",
+    "expiry": "1530316999",
+    "address": "0xe84da28128a48dd5585d1abb1ba67276fdd70800"
+  },
+  "1": {
+    "resident": "0",
+    "expiry": "1530316800",
+    "address": "0xcc036143c68a7a9a41558eae739b428ecde5ef66"
+  },
+  "2": {
+    "resident": "1",
+    "expiry": "1530316800",
+    "address": "0xe2b3204f29ab45d5fd074ff02ade098fbc381d42"
+  }
+}
