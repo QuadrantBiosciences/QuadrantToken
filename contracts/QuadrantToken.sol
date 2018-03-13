@@ -10,8 +10,8 @@ import "./QuadrantTokenReciever.sol";
 
 
 contract QuadrantToken is  ERC223, BurnableToken, MintableToken, PausableToken, Whitelister {
-    string public constant  name="quadrant";
-    string public constant symbol = "QDNT"; 
+    string public constant  name="Quadrant";
+    string public constant symbol = "QBI"; 
     uint8 public constant decimals =0 ;
     string public constant version="V1.0";
     uint constant multiplier = 10 ** uint(decimals);

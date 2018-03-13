@@ -15,7 +15,7 @@ contract DutchAuction is Pausable {
      * Auction for the Quadrant Token.
      *
      * Terminology:
-     * 1 token unit = QDNT
+     * 1 token unit = QBI
      * token_multiplier set from token's number of decimals (i.e. 10 ** decimals)
      */
 
@@ -81,10 +81,10 @@ contract DutchAuction is Pausable {
     // Once this goal (# tokens) is met, auction will close after 8 hours
     uint public goal;
 
-    // Total number of QDNT tokens that will be auctioned
+    // Total number of QBI tokens that will be auctioned
     uint public targetTokens;
 
-    // Price of QDNT token at the end of the auction: Wei per QDNT token
+    // Price of QBI token at the end of the auction: Wei per QBI token
     uint public final_price;
 
     // Bidder address => bid value
@@ -190,7 +190,7 @@ contract DutchAuction is Pausable {
         require(tokenAddress != 0x0);
         token = QuadrantToken(tokenAddress);
 
-        // Get number of QDNT to be auctioned from token auction balance
+        // Get number of QBI to be auctioned from token auction balance
         targetTokens = token.balanceOf(address(this));
 
         // Set the number of the token multiplier for its decimals
@@ -233,9 +233,9 @@ contract DutchAuction is Pausable {
         AuctionStarted(start_time, start_block);
     }
 
-    /// @notice Finalize the auction - sets the final QDNT token price and changes the auction
+    /// @notice Finalize the auction - sets the final QBI token price and changes the auction
     /// stage after no bids are allowed anymore.
-    /// @dev Finalize auction and set the final QDNT token price.
+    /// @dev Finalize auction and set the final QBI token price.
     function finalizeAuction() public onlyOwner whenNotPaused atStage(Stages.AuctionStarted) {
         // Missing funds should be 0 at this point
         uint balanceFunds;
@@ -244,8 +244,8 @@ contract DutchAuction is Pausable {
         (balanceFunds, tokensCommitted, bonusTokensCommitted) = balanceFundsToEndAuction();
         require(balanceFunds == 0 || tokensCommitted.add(bonusTokensCommitted) >= targetTokens.sub(goal));
 
-        // Calculate the final price = WEI / QDNT
-        // Reminder: targetTokens is the number of QDNT that are auctioned
+        // Calculate the final price = WEI / QBI
+        // Reminder: targetTokens is the number of QBI that are auctioned
         // we do not consider bonus tokens to calculate price
         final_price = token_multiplier.mul(received_wei.add(getBonusWei())).div(targetTokens);
 
@@ -387,7 +387,7 @@ contract DutchAuction is Pausable {
             return false;
         }
 
-        // Number of QDNT = bid_wei / final price
+        // Number of QBI = bid_wei / final price
         uint tokens = (token_multiplier.mul(bids[receiver_address])).div(final_price);
        
         //uint returnExcedent = bids[receiver_address].sub(tokens * final_price);
@@ -448,11 +448,11 @@ contract DutchAuction is Pausable {
         totalTokens = tokens.add(bonusTokens);
         
     }
-    /// @notice Get the QDNT price in WEI during the auction, at the time of
+    /// @notice Get the QBI price in WEI during the auction, at the time of
     /// calling this function. Returns `0` if auction has ended.
     /// Returns `price_start` before auction has started.
-    /// @dev Calculates the current QDNT token price in WEI.
-    /// @return Returns WEI per QDNT.
+    /// @dev Calculates the current QBI token price in WEI.
+    /// @return Returns WEI per QBI.
     function price() public constant returns (uint) {
         if (stage == Stages.AuctionEnded ||
             stage == Stages.TokensDistributed) {
@@ -462,8 +462,8 @@ contract DutchAuction is Pausable {
     }
 
     /// @notice Get the missing funds needed to end the auction,
-    /// calculated at the current QDNT price in WEI.
-    /// @dev The missing funds amount necessary to end the auction at the current QDNT price in WEI.
+    /// calculated at the current QBI price in WEI.
+    /// @dev The missing funds amount necessary to end the auction at the current QBI price in WEI.
     /// @return Returns the missing funds amount in WEI.
     function balanceFundsToEndAuction()  public constant returns (uint balanceFunds, uint tokensCommitted, uint bonusTokensCommitted) {
 
@@ -621,14 +621,14 @@ contract DutchAuction is Pausable {
      *  Private functions
      */
 
-    /// @dev Calculates the token price (WEI / QDNT) at the current timestamp
+    /// @dev Calculates the token price (WEI / QBI) at the current timestamp
     /// during the auction; elapsed time = 0 before auction starts.
     /// Based on the provided parameters, the price does not change in the first
     /// `price_constant^(1/price_exponent)` seconds due to rounding.
     /// Rounding in `decay_rate` also produces values that increase instead of decrease
     /// in the beginning; these spikes decrease over time and are noticeable
     /// only in first hours. This should be calculated before usage.
-    /// @return Returns the token price - Wei per QDNT.
+    /// @return Returns the token price - Wei per QBI.
 
 
     function calcTokenPrice() private constant returns (uint) {
