@@ -65,8 +65,13 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('Contract initial token balance: '+  await this.QuadrantToken.balanceOf.call(this.DutchAuction.address))
     console.log('Start_Time :' + await this.DutchAuction.start_time.call())
   
+   
     await this.QuadrantToken.addToWhitelist([this.DutchAuction.address],[0], [this.expiryDate] ,{from:owner})
 
+    await this.DutchAuction.addUpdateCountryRules(1,ether(1),3) 
+    await this.DutchAuction.addUpdateCountryRules(2,ether(11),10) 
+    console.log('addUpdateCountryRules 1: ' + await this.DutchAuction.getCountryRule.call(1));
+    console.log('addUpdateCountryRules 2: ' + await this.DutchAuction.getCountryRule.call(2));
     this.newTime = this.startTime;
     //await increaseTimeTo(this.newTime);
     console.log('this.newTime ' + this.newTime)
@@ -78,6 +83,8 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     await this.QuadrantToken.addToWhitelist([purchaser1],[1], [this.expiryDate] ,{from:owner})
 
     console.log('Purchase 1 isInWhiteList: ' + await this.QuadrantToken.isWhitelisted.call(purchaser1))
+    console.log('Purchase countrycode: ' + await this.QuadrantToken.getUserResidentCountryCode.call(purchaser1))
+    
     
     await this.DutchAuction.bid({from: purchaser1, value: ether(10000)})
     
@@ -85,6 +92,8 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('Purchase 1 bonus bid: ' + weiToEther(await this.DutchAuction.bidsWithTier1Bonus.call(purchaser1)))
     console.log('Price :' + weiToEther(await this.DutchAuction.price.call()))
     console.log('balanceFundsToEndAuction after bid: ' + await this.DutchAuction.balanceFundsToEndAuction.call())
+
+    console.log('Bid count after 1 bid: ' + await this.DutchAuction.getCountryRule.call(1));
     // Purchase 1 End
 
     this.newTime = this.newTime + duration.days(1);
@@ -94,7 +103,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     // Purchase 2 ===============================
     console.log('\nPurchaser 2 initial token balance: '+  await this.QuadrantToken.balanceOf.call(purchaser2))
 
-    await this.QuadrantToken.addToWhitelist([purchaser2],[0], [this.expiryDate] ,{from:owner})
+    await this.QuadrantToken.addToWhitelist([purchaser2],[2], [this.expiryDate] ,{from:owner})
 
     console.log('Purchase 2 isInWhiteList: ' + await this.QuadrantToken.isWhitelisted.call(purchaser2))
     
@@ -104,7 +113,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('Price :' + weiToEther(await this.DutchAuction.price.call()))
     console.log('balanceFundsToEndAuction after bid: ' + await this.DutchAuction.balanceFundsToEndAuction.call())
    
-    
+    console.log('Bid count after 2 bid: ' + await this.DutchAuction.getCountryRule.call(2));
     // Purchase 2 End
     this.newTime = this.newTime + duration.days(1) + duration.hours(5);
     await increaseTimeTo(this.newTime);
@@ -113,7 +122,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     // Purchase 3 ===============================
     console.log('\nPurchaser 3 initial token balance: '+  await this.QuadrantToken.balanceOf.call(purchaser3))
 
-    await this.QuadrantToken.addToWhitelist([purchaser3],[0], [this.expiryDate] ,{from:owner})
+    await this.QuadrantToken.addToWhitelist([purchaser3],[1], [this.expiryDate] ,{from:owner})
 
     console.log('Purchase 3 isInWhiteList: ' + await this.QuadrantToken.isWhitelisted.call(purchaser3))
     
@@ -122,6 +131,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('Purchase 3 bid: ' + weiToEther(await this.DutchAuction.bids.call(purchaser3)))
     console.log('Price :' + weiToEther(await this.DutchAuction.price.call()))
     console.log('balanceFundsToEndAuction after bid: ' + await this.DutchAuction.balanceFundsToEndAuction.call())
+    console.log('Bid count 3 bid: ' + await this.DutchAuction.getCountryRule.call(1));
     // End Purchase 3 ===============================
 
     //one more from purchase1 1 
@@ -133,7 +143,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('balanceFundsToEndAuction after bid: ' + await this.DutchAuction.balanceFundsToEndAuction.call())
 
     //one more from purchaser 1 end
-
+    console.log('Bid count after 1 bid: ' + await this.DutchAuction.getCountryRule.call(1));
 
 
     this.newTime = this.newTime + duration.days(1);
@@ -143,7 +153,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     // Purchase 4 ===============================
     console.log('\nPurchaser 4 initial token balance: '+  await this.QuadrantToken.balanceOf.call(purchaser4))
 
-    await this.QuadrantToken.addToWhitelist([purchaser4],[0], [this.expiryDate] ,{from:owner})
+    await this.QuadrantToken.addToWhitelist([purchaser4],[2], [this.expiryDate] ,{from:owner})
 
     console.log('Purchase 4 isInWhiteList: ' + await this.QuadrantToken.isWhitelisted.call(purchaser4))
     
@@ -154,7 +164,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('balanceFundsToEndAuction after bid: ' + await this.DutchAuction.balanceFundsToEndAuction.call())
     // End Purchase 3 ===============================
 
-
+    console.log('Bid count after 1 bid: ' + await this.DutchAuction.getCountryRule.call(2));
 
     console.log('\nreceived_wei after bid: ' + weiToEther(await this.DutchAuction.received_wei.call()))
 

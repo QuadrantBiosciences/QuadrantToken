@@ -26,8 +26,8 @@ contract DutchAuction is Pausable {
     uint constant public goal_plus_8 = 8 hours;
     
     //Bonus tiers and percentange bonus per tier  
-    uint constant tier1Time = 24 hours;
-    uint constant tier2Time = 48 hours;
+    uint constant tier1Time = 48 hours;
+    uint constant tier2Time = 72 hours;
     uint constant tier1Bonus = 10;
     uint constant tier2Bonus = 5;
     
@@ -51,6 +51,9 @@ contract DutchAuction is Pausable {
 
     // Divisor exponent; e.g. 3
     uint32 public price_exponent;
+
+    //Price adjustment to make sure price doesn't go below pre auction investor price
+    uint public price_adjustment = 0;
 
     // For calculating elapsed time for price
     uint public start_time;
@@ -101,6 +104,18 @@ contract DutchAuction is Pausable {
 
     Stages public stage;
 
+    struct CountryLimit {
+        // minimum amount needed to place the bid
+        uint minAmount;
+        //max no of people who can bid from this country
+        uint maxBids;
+        //counter for no of bids for this country
+        uint bidCount;
+
+    }
+
+    uint count = 0;
+    mapping (uint => CountryLimit) public countryRulesList;
     /*
      * Enums
      */
@@ -135,7 +150,7 @@ contract DutchAuction is Pausable {
     /*
      * Events
      */
-    event Deployed(uint indexed _price_start,uint indexed _price_constant,uint32 indexed _price_exponent);
+    event Deployed(uint indexed _price_start,uint indexed _price_constant,uint32 indexed _price_exponent ,uint _price_adjustment);
     event Setup();
     event AuctionStarted(uint indexed _start_time, uint indexed _block_number);
     event BidSubmission(address indexed _sender, uint _amount, uint _balanceFunds);
@@ -161,6 +176,7 @@ contract DutchAuction is Pausable {
         uint _price_start,
         uint _price_constant,
         uint32 _price_exponent,
+        uint _price_adjustment,
         uint _goal)
         public
     {
@@ -170,8 +186,8 @@ contract DutchAuction is Pausable {
 
         //owner_address = msg.sender;
         stage = Stages.AuctionDeployed;
-        changeSettings(_price_start, _price_constant, _price_exponent, _goal);
-        Deployed(_price_start, _price_constant, _price_exponent);
+        changeSettings(_price_start, _price_constant, _price_exponent, _price_adjustment, _goal);
+        Deployed(_price_start, _price_constant, _price_exponent, _price_adjustment);
     }
 
  /// @dev Fallback function for the contract, which calls bid() if the auction has started.
@@ -210,6 +226,7 @@ contract DutchAuction is Pausable {
         uint _price_start,
         uint _price_constant,
         uint32 _price_exponent,
+        uint _price_adjustment,
         uint _goal
         )
         internal
@@ -221,6 +238,7 @@ contract DutchAuction is Pausable {
         price_start = _price_start;
         price_constant = _price_constant;
         price_exponent = _price_exponent;
+        price_adjustment= _price_adjustment;
         goal = _goal;
     }
 
@@ -267,6 +285,9 @@ contract DutchAuction is Pausable {
         require(msg.value > 0);
         
         require(token.isWhitelisted(msg.sender));
+
+        uint userCountryCode = token.getUserResidentCountryCode(msg.sender);
+        checkCountryRules(userCountryCode);
         
         assert(bids[msg.sender].add(msg.value) >= msg.value);
 
@@ -315,6 +336,8 @@ contract DutchAuction is Pausable {
             ReturnedExcedent(msg.sender, returnExcedent);
         }
 
+        
+        countryRulesList[userCountryCode].bidCount = countryRulesList[userCountryCode].bidCount.add(1);
  //Check if auction goal is met. Goal means 90% of total tokens to be auctioned.
        hasGoalReached();
     }
@@ -553,10 +576,16 @@ contract DutchAuction is Pausable {
     }
 
       ///change Price Exponent  
-    function changetPriceExponent(uint32 priceExponent) public onlyOwner {
+    function changePriceExponent(uint32 priceExponent) public onlyOwner {
         require(priceExponent != 0);
         price_exponent = priceExponent;
     }
+        ///change Price Exponent  
+    function changePriceAdjustment(uint32 priceAdjustment) public onlyOwner {
+        require(priceAdjustment != 0);
+        price_adjustment = priceAdjustment;
+    }
+    
    ///change Token Multiplier
     function changetTokenMultiplier(uint32 tokenMultiplier) public onlyOwner {
         require(tokenMultiplier != 0);
@@ -615,7 +644,38 @@ contract DutchAuction is Pausable {
         auctionEndTime = end_time;
         finalPrice = final_price;
 
-    }  
+    } 
+    
+    ///add rules for a country  
+    function addUpdateCountryRules(uint countryCode, uint minAmount, uint maxBids) public onlyOwner {
+        var countryRule = countryRulesList[countryCode];
+  
+        if (countryRule.minAmount != minAmount) {
+            countryRule.minAmount = minAmount;
+        }
+        if (countryRule.maxBids != maxBids) {
+            countryRule.maxBids = maxBids;
+        }
+       
+    }
+
+    function getCountryRule(uint countryCode)  public view returns (uint, uint, uint) {
+        return (countryRulesList[countryCode].minAmount, countryRulesList[countryCode].maxBids, countryRulesList[countryCode].bidCount);
+    }
+
+    function checkCountryRules(uint countryCode) private view {
+        
+         CountryLimit storage countryRule = countryRulesList[countryCode];
+  
+        if (countryRule.minAmount > 0) {
+            require(countryRule.minAmount <= msg.value);
+        }
+        if (countryRule.maxBids > 0) {
+            require(countryRule.bidCount < countryRule.maxBids);
+            
+        }
+        
+    }
 
     /*
      *  Private functions
@@ -636,8 +696,9 @@ contract DutchAuction is Pausable {
         if (stage == Stages.AuctionStarted) {
             elapsed = now - start_time;
         }
+        
         uint decay_rate = elapsed ** price_exponent / price_constant;
-        return price_start * (1 + elapsed) / (1 + elapsed + decay_rate);
+        return price_start * (1 + elapsed) / (1 + elapsed + decay_rate) + price_adjustment;
     }  
 }
 

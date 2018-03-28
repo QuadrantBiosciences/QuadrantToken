@@ -25,15 +25,16 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser]) {
   const value = ether(42)
   const cap = ether(300)
   const expectedTokenAmount = rate.mul(value)
-  const price_start = ether(.01);
+  const price_start = ether(0.0000015418947);
+  const price_adjustment = 458105300000;
 
   
-  const price_constant = 134400;
+  const price_constant = 400;
   const price_exponent = 2;
   const weiToEth = 1000000000000000000
-  const _initial_wallet_supply = new BigNumber(80000000);
-  const _initial_sale_supply = new BigNumber(20000000);
-  const goal = new BigNumber(18000000);
+  const _initial_wallet_supply = new BigNumber(90000000);
+  const _initial_sale_supply = new BigNumber(10000000);
+  const goal = new BigNumber(9000000);
   
   before(async function () {
     // Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
@@ -48,7 +49,7 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser]) {
 
     await increaseTimeTo(this.startTime);
 
-    this.dutchAuction =  await DutchAuction.new(wallet, price_start, price_constant, price_exponent,goal);
+    this.dutchAuction =  await DutchAuction.new(wallet, price_start, price_constant, price_exponent,price_adjustment,goal);
     this.quadrantToken = await QuadrantToken.new(this.dutchAuction.address,wallet,owner,_initial_wallet_supply,_initial_sale_supply)
     await this.dutchAuction.setup(this.quadrantToken.address) 
     await this.dutchAuction.startAuction()
@@ -98,12 +99,12 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser]) {
    
     
     console.log('Price: 0 ' + price)  ;
-    console.log('Ether Price: 0 ' + ether(price))  ;
+    console.log('Ether Price: 0 ' + price.dividedBy(weiToEth))  ;
     
     let newTime;
 
-    for (let i = 1; i < 15; i++) {
-      this.newTime = this.startTime + duration.days(i);
+    for (let i = 15; i <= 240; i += 15) {
+      this.newTime = this.startTime + duration.minutes(i);
       await increaseTimeTo(this.newTime);
       price = await this.dutchAuction.price();
       console.log('\nTime: ' + i + ' ' + this.newTime)  ;

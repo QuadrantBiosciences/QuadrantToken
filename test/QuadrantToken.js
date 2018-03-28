@@ -10,7 +10,7 @@ import latestTime from './helpers/latestTime'
 import EVMThrow from './helpers/EVMThrow'
 const {
   expectThrow
-} = require('./util');
+} = require('./helpers/util');
 const BigNumber = web3.BigNumber
 
 const should = require('chai')
@@ -102,7 +102,7 @@ contract('QuadrantToken:', function ([deployOwner, investor, wallet, purchaser])
         .token
         .mint(deployOwner, tokenToMint);
 
-      await this.token.addToWhitelist([accountaddress, deployOwner], 0,  this.expiryDate,{
+      await this.token.addToWhitelist([accountaddress, deployOwner], [1,1],[this.expiryDate,this.expiryDate]  ,{
         from: deployOwner
       })
 
