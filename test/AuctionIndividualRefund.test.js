@@ -24,7 +24,7 @@ contract('DutchAuction',function([owner, investor, wallet, purchaser, randomUser
   const _initial_sale_supply = new BigNumber(20000000);
   const priceStart = new BigNumber(.01*weiToEth)
   const goal = new BigNumber(18000000);
-
+  const price_adjustment = 0;
   owner = "0xdf08f82de32b8d460adbe8d72043e3a7e25a3b39";
   wallet= "0x6704fbfcd5ef766b287262fa2281c105d57246a6";  
   let purchaser1 = "0x9e1ef1ec212f5dffb41d35d9e5c14054f26c6560";
@@ -38,7 +38,7 @@ contract('DutchAuction',function([owner, investor, wallet, purchaser, randomUser
   
   before(async function(){
     await advanceBlock()
-    this.DutchAuction = await DutchAuction.new(wallet, priceStart, priceConstant, princeExponent,goal).should.not.be.rejected;
+    this.DutchAuction = await DutchAuction.new(wallet, priceStart, priceConstant, princeExponent,price_adjustment,goal).should.not.be.rejected;
     console.log('Dutch Auction Contract Address : ' + DutchAuction.address);        
     this.QuadrantToken = await QuadrantToken.new(this.DutchAuction.address, wallet, owner, _initial_wallet_supply,_initial_sale_supply);
     console.log('Quadrant Token Contract Address : ' + this.QuadrantToken.address);

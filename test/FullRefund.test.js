@@ -28,7 +28,7 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser, randomUs
   const _initial_sale_supply = new BigNumber(20000000);
   const price_start = new BigNumber(.01*weiToEth)
   const goal = new BigNumber(18000000);
-
+  const price_adjustment = 0;
   owner = "0xdf08f82de32b8d460adbe8d72043e3a7e25a3b39";
   wallet= "0x6704fbfcd5ef766b287262fa2281c105d57246a6";  
   purchaser = "0x9e1ef1ec212f5dffb41d35d9e5c14054f26c6560";
@@ -44,7 +44,7 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser, randomUs
     this.afterEndTime = this.endTime + duration.seconds(1)
     this.expiryDate = this.startTime + duration.days(90);
 
-    this.DutchAuction=await DutchAuction.new(wallet, price_start, price_constant, price_exponent, goal);
+    this.DutchAuction=await DutchAuction.new(wallet, price_start, price_constant, price_exponent,price_adjustment, goal);
     console.log('\n\nthis.DutchAuction.address ' + this.DutchAuction.address)
     
     this.QuadrantToken=await QuadrantToken.new(this.DutchAuction.address,wallet,owner,_initial_wallet_supply,_initial_sale_supply);
@@ -88,7 +88,7 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser, randomUs
   
   describe('DutchAuctionSale Constructor: Creating the DutchAuctionSale Contract', () => {
     it('should successfully create DutchAuctionSale contract', async function () {
-      let DutchAuctionSale = await DutchAuction.new(wallet, price_start, price_constant, price_exponent, goal).should.not.be.rejected
+      let DutchAuctionSale = await DutchAuction.new(wallet, price_start, price_constant, price_exponent,price_adjustment, goal).should.not.be.rejected
     })
   })
 

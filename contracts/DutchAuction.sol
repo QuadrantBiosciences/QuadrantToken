@@ -26,10 +26,10 @@ contract DutchAuction is Pausable {
     uint constant public goal_plus_8 = 8 hours;
     
     //Bonus tiers and percentange bonus per tier  
-    uint constant tier1Time = 48 hours;
-    uint constant tier2Time = 72 hours;
-    uint constant tier1Bonus = 10;
-    uint constant tier2Bonus = 5;
+    uint constant private tier1Time = 48 hours;
+    uint constant private tier2Time = 72 hours;
+    uint constant private tier1Bonus = 10;
+    uint constant private tier2Bonus = 5;
     
     //Storage    
     QuadrantToken public token;
@@ -114,7 +114,7 @@ contract DutchAuction is Pausable {
 
     }
 
-    uint count = 0;
+
     mapping (uint => CountryLimit) public countryRulesList;
     /*
      * Enums
@@ -323,6 +323,10 @@ contract DutchAuction is Pausable {
             bidsWithTier2Bonus[msg.sender] = bidsWithTier2Bonus[msg.sender].add(bidAmount);
         }
         
+        // increase the counter for no of bids from that country
+        if (userCountryCode > 0) {
+            countryRulesList[userCountryCode].bidCount = countryRulesList[userCountryCode].bidCount.add(1);
+        }
         received_wei = received_wei.add(bidAmount);
         // Send bid amount to wallet
         wallet_address.transfer(bidAmount);
@@ -330,15 +334,15 @@ contract DutchAuction is Pausable {
         BidSubmission(msg.sender, bidAmount, balanceFunds);
 
         assert(received_wei >= bidAmount);
+      
 
         if (returnExcedent > 0) {
             msg.sender.transfer(returnExcedent);
             ReturnedExcedent(msg.sender, returnExcedent);
         }
 
-        
-        countryRulesList[userCountryCode].bidCount = countryRulesList[userCountryCode].bidCount.add(1);
- //Check if auction goal is met. Goal means 90% of total tokens to be auctioned.
+ 
+        //Check if auction goal is met. Goal means 90% of total tokens to be auctioned.
        hasGoalReached();
     }
 
@@ -375,12 +379,11 @@ contract DutchAuction is Pausable {
         assert(bidsWithTier1Bonus[msg.sender] == 0);
         assert(bidsWithTier2Bonus[msg.sender] == 0);
         
-        msg.sender.transfer(depositedValue);
-        
         received_wei = received_wei.sub(depositedValue);
         recievedTier1BonusWei = recievedTier1BonusWei.sub(depositedTier1Value);
         recievedTier2BonusWei = recievedTier2BonusWei.sub(depositedTier2Value);
-
+        
+        msg.sender.transfer(depositedValue);
         Refunded(msg.sender, depositedValue);
      }
 
@@ -413,19 +416,9 @@ contract DutchAuction is Pausable {
         // Number of QBI = bid_wei / final price
         uint tokens = (token_multiplier.mul(bids[receiver_address])).div(final_price);
        
-        //uint returnExcedent = bids[receiver_address].sub(tokens * final_price);
-       // uint returnExcedent = bids[receiver_address];
-
-    
         uint returnExcedent = bids[receiver_address].sub(tokens.mul(final_price));
         
-        //assert(final_price > returnExcedent);
-
-        if (returnExcedent > 0) {
-            msg.sender.transfer(returnExcedent);
-            wei_for_excedent = wei_for_excedent.sub(returnExcedent);
-            ReturnedExcedent(msg.sender, returnExcedent);
-        }
+       
         
         // Update the total amount of funds for which tokens have been claimed
         funds_claimed += bids[receiver_address];
@@ -438,11 +431,8 @@ contract DutchAuction is Pausable {
         bidsWithTier1Bonus[receiver_address] = 0;
         bidsWithTier2Bonus[receiver_address] = 0;
         
-        assert(token.transfer(receiver_address, totalTokens));
         
-        ClaimedTokens(receiver_address, totalTokens);
 
-        
         // After the last tokens are claimed, we change the auction stage
         // Due to the above logic, rounding errors will not be an issue
         if (funds_claimed == received_wei) {
@@ -450,11 +440,24 @@ contract DutchAuction is Pausable {
             TokensDistributed();
         }
 
+        //assert(final_price > returnExcedent);
+        if (returnExcedent > 0) {
+            wei_for_excedent = wei_for_excedent.sub(returnExcedent);
+            msg.sender.transfer(returnExcedent);            
+            ReturnedExcedent(msg.sender, returnExcedent);
+        }
+
+        assert(token.transfer(receiver_address, totalTokens));
+        
+        ClaimedTokens(receiver_address, totalTokens);
+
         assert(token.balanceOf(receiver_address) >= totalTokens);
         
         assert(bids[receiver_address] == 0);
         assert(bidsWithTier1Bonus[receiver_address] == 0);
         assert(bidsWithTier2Bonus[receiver_address] == 0);
+
+
         return true;
     }
 

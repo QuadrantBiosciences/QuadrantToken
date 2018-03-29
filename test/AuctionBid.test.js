@@ -36,7 +36,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     const _initial_sale_supply = new BigNumber(20000000);
     const price_start =  ether(.01);
     const goal = new BigNumber(18000000);
- 
+    const price_adjustment = 0;
   
   before(async function () {
     // Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
@@ -53,7 +53,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     //await increaseTimeTo(this.newTime);
     //console.log('this.newTime ' + this.newTime)
   
-    this.DutchAuction = await DutchAuction.new(wallet, price_start, price_constant, price_exponent,goal)
+    this.DutchAuction = await DutchAuction.new(wallet, price_start, price_constant, price_exponent,price_adjustment,goal)
     console.log('this.DutchAuction.address ' + this.DutchAuction.address)
     this.QuadrantToken = await QuadrantToken.new(this.DutchAuction.address,wallet,owner,_initial_wallet_supply,_initial_sale_supply)
     console.log('this.QuadrantToken.address ' + this.QuadrantToken.address)
