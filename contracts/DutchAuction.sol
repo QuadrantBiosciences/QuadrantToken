@@ -649,6 +649,11 @@ contract DutchAuction is Pausable {
 
     } 
     
+    function addUpdateCountriesRules(uint[] countries, uint[] minAmounts, uint[] maxBids) public onlyOwner {
+        for (uint32 i = 0; i < countries.length; i++) {
+            addUpdateCountryRules(countries[i], minAmounts[i], maxBids[i]);
+        }
+    }
     ///add rules for a country  
     function addUpdateCountryRules(uint countryCode, uint minAmount, uint maxBids) public onlyOwner {
         var countryRule = countryRulesList[countryCode];

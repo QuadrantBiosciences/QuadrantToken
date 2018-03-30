@@ -1,0 +1,17 @@
+{
+  "0": {
+    "countryCode": "1",
+    "minAmount": "0",
+    "maxBids": "0"
+  },
+  "1": {
+    "countryCode": "2",
+    "minAmount": "1",
+    "maxBids": "499"
+  },
+  "2": {
+    "countryCode": "3",
+    "minAmount": "0",
+    "maxBids": "5"
+  }
+}

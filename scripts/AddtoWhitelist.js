@@ -1,12 +1,27 @@
-const quadrantToken = artifacts.require("./QuadrantToken.sol");
+const DutchAuction = artifacts.require("./DutchAuction.sol");
+const QuadrantToken = artifacts.require("./QuadrantToken.sol");
 
 const fs = require('fs');
 const BN = require('bn.js');
+const BigNumber = web3.BigNumber
+
+function weiToEther(n) {
+    return new web3.BigNumber(web3.fromWei(n, 'ether'));
+  }
+
+ const should = require('chai')
+  .use(require('chai-as-promised'))
+  .use(require('chai-bignumber')(BigNumber))
+  .should()
+
 module.exports = function(deployer) {
-  let owner="0xdf08f82de32b8d460adbe8d72043e3a7e25a3b39";
-  let usersConf;
- 
-  usersConf = JSON.parse(fs.readFileSync('./conf/addWallets.json'));
+
+    return Migrate(deployer);
+
+};
+async function Migrate(deployer) {
+
+  let usersConf = JSON.parse(fs.readFileSync('./conf/addWallets.json'));
  
   const wallets = [];
   const resident = [];
@@ -17,27 +32,12 @@ module.exports = function(deployer) {
     expiry.push(usersConf[user].expiry);
   }
  
-  var inst;
-  
-  quadrantToken.at('0x24d718f7d8af7d7a4abaa2b1cb7abbb36a23a00d').then(function(instance) {
-    inst = instance;
-    console.log('quadrantToken:' + instance.address);
-    console.log('result: '+ JSON.stringify(wallets,null,2));
-    console.log('result: '+ JSON.stringify(resident,null,2));
-    console.log('result: '+ JSON.stringify(expiry,null,2));
-    //return true;
-    instance.addToWhitelist(wallets,resident,expiry ,{from: owner, gas: 4700000});
-    //instance.removeFromWhitelist(['0xe84da28128a48dd5585d1abb1ba67276fdd70800']);
-     
-    return inst.isWhitelisted('0xe84da28128a48dd5585d1abb1ba67276fdd70800');
-  }).then(function(result) {
-    console.log('result: '+ JSON.stringify(result,null,2))
-    return inst.getUsers();
-  }).then(function(result) {
-    // If this callback is called, the transaction was successfully processed.
-    console.log('result: '+ JSON.stringify(result,null,2))
-  }).catch(function(e) {
-    console.log(e)
-    // There was an error! Handle it.
-  })
-};
+
+//this.DutchAuction = await DutchAuction.at('0x56FF15657dE23AE5CDb20E2E7C67c4Dcd65C8e91');
+this.QuadrantToken = await QuadrantToken.at('0xcebc1ebcafc7db4f5a6848554f385aea2da86c09');
+
+await this.QuadrantToken.addToWhitelist(wallets,resident,expiry);
+console.log('isWhite listed  ' + await this.QuadrantToken.isWhitelisted('0xe84da28128a48dd5585d1abb1ba67276fdd70800'));
+console.log('User List  ' + JSON.stringify(await this.QuadrantToken.getUsers()));
+
+}
