@@ -37,7 +37,7 @@ async function liveDeploy(deployer, network, accounts) {
 
   const goal = new BigNumber(9000000);
 
-  deployer.deploy(DutchAuction, wallet, price_start, price_constant,price_exponent,price_adjustment,goal,{gas:4700000}) //, {gas:7829561}increased only for local development
+  deployer.deploy(DutchAuction, wallet, price_start, price_constant,price_exponent,price_adjustment,goal) //, {gas:7829561}increased only for local development
     // .then(() => vidamintSale.deployed())
     .then( async function() {
       const DutchAuctionInsta = await DutchAuction.deployed();
