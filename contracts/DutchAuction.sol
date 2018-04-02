@@ -26,11 +26,13 @@ contract DutchAuction is Pausable {
     uint constant public goal_plus_8 = 8 hours;
     
     //Bonus tiers and percentange bonus per tier  
-    uint constant private tier1Time = 48 hours;
-    uint constant private tier2Time = 72 hours;
+    uint constant private tier1Time = 24 hours;
+    uint constant private tier2Time = 48 hours;
     uint constant private tier1Bonus = 10;
     uint constant private tier2Bonus = 5;
     
+    //we need multiplier to keep track of fractional tokens temporarily
+    uint constant private token_adjuster = 10**18;
     //Storage    
     QuadrantToken public token;
     
@@ -414,25 +416,25 @@ contract DutchAuction is Pausable {
         }
 
         // Number of QBI = bid_wei / final price
-        uint tokens = (token_multiplier.mul(bids[receiver_address])).div(final_price);
-       
-        uint returnExcedent = bids[receiver_address].sub(tokens.mul(final_price));
+        uint tokens = token_adjuster.mul(token_multiplier.mul(bids[receiver_address])).div(final_price);
         
-       
+       // Calculate total tokens = tokens + bonus tokens
+       // Calculate total effective bid including bonus
+        uint totalBid; 
+        uint totalTokens;
+        (totalBid, totalTokens) = calculateBonus(tokens);
+
+        totalTokens = totalTokens.div(token_adjuster);
+        uint returnExcedent = totalBid.sub(totalTokens.mul(final_price));
         
         // Update the total amount of funds for which tokens have been claimed
         funds_claimed += bids[receiver_address];
-        
-        // Calculate total tokens = tokens + bonus tokens
-        uint totalTokens = calculateBonus(tokens);
 
         // Set receiver bid to 0 before assigning tokens
         bids[receiver_address] = 0;
         bidsWithTier1Bonus[receiver_address] = 0;
         bidsWithTier2Bonus[receiver_address] = 0;
         
-        
-
         // After the last tokens are claimed, we change the auction stage
         // Due to the above logic, rounding errors will not be an issue
         if (funds_claimed == received_wei) {
@@ -461,16 +463,21 @@ contract DutchAuction is Pausable {
         return true;
     }
 
-    function calculateBonus(uint tokens) private constant returns (uint  totalTokens) {
+    function calculateBonus(uint tokens) private constant returns (uint totalBid, uint  totalTokens) {
 
+        // This function returns the total effective bid = bid + bonus bid
         // This function returns the total number of tokens = tokens + bonus tokens
         address receiver_address = msg.sender;
+        uint tier1bonusBid = (bidsWithTier1Bonus[receiver_address].mul(tier1Bonus)).div(100);
+        uint tier2bonusBid = (bidsWithTier2Bonus[receiver_address].mul(tier2Bonus)).div(100);
 
-        uint tier1bonusTokens = (token_multiplier.mul(bidsWithTier1Bonus[receiver_address]).mul(tier1Bonus)).div(final_price.mul(100));
-        uint tier2bonusTokens = (token_multiplier.mul(bidsWithTier2Bonus[receiver_address]).mul(tier2Bonus)).div(final_price.mul(100));
-                
+        uint tier1bonusTokens = token_adjuster.mul(token_multiplier.mul(bidsWithTier1Bonus[receiver_address])).mul(tier1Bonus).div(final_price.mul(100));
+        uint tier2bonusTokens = token_adjuster.mul(token_multiplier.mul(bidsWithTier2Bonus[receiver_address])).mul(tier2Bonus).div(final_price.mul(100));
+
+        uint bonusBid = tier1bonusBid.add(tier2bonusBid);
         uint bonusTokens = tier1bonusTokens.add(tier2bonusTokens);
-        
+     
+        totalBid = bids[receiver_address].add(bonusBid);
         totalTokens = tokens.add(bonusTokens);
         
     }

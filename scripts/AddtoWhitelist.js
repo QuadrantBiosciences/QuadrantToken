@@ -34,10 +34,11 @@ async function Migrate(deployer) {
  
 
 //this.DutchAuction = await DutchAuction.at('0x56FF15657dE23AE5CDb20E2E7C67c4Dcd65C8e91');
-this.QuadrantToken = await QuadrantToken.at('0xcebc1ebcafc7db4f5a6848554f385aea2da86c09');
+this.QuadrantToken = await QuadrantToken.at('0x4f13c9d75803abdeee6416208df2030d800c9876');
 
 await this.QuadrantToken.addToWhitelist(wallets,resident,expiry);
-console.log('isWhite listed  ' + await this.QuadrantToken.isWhitelisted('0xe84da28128a48dd5585d1abb1ba67276fdd70800'));
-console.log('User List  ' + JSON.stringify(await this.QuadrantToken.getUsers()));
+//console.log('isWhite listed  ' + await this.QuadrantToken.isWhitelisted('0xe84da28128a48dd5585d1abb1ba67276fdd70800'));
 
+//console.log('User List  ' + JSON.stringify(await this.QuadrantToken.getUsers()));
+console.log('User getWhitelist  ' + JSON.stringify(await this.QuadrantToken.getWhitelist()));
 }

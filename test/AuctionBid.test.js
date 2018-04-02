@@ -96,7 +96,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
     console.log('Bid count after 1 bid: ' + await this.DutchAuction.getCountryRule.call(1));
     // Purchase 1 End
 
-    this.newTime = this.newTime + duration.days(1);
+    this.newTime = this.newTime + duration.days(1) + duration.hours(5);;
     await increaseTimeTo(this.newTime);
     console.log('this.newTime ' + this.newTime)
 

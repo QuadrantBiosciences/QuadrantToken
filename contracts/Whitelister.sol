@@ -102,7 +102,7 @@ contract Whitelister is Ownable {
     function countUsers()  public view returns (uint) {
         return whitelist.length;
     }
-       ///change Wallet Address
+       ///change whitelister Address
     function changeWhiteLister(address whitelisterAddress) public onlyOwner {
         require(whitelisterAddress != 0);
         whitelister_address = whitelisterAddress;
