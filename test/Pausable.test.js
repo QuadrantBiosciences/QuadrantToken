@@ -1,11 +1,11 @@
 
-import ether from '../zeppelin-solidity/test/helpers/ether'
-import {advanceBlock} from '../zeppelin-solidity/test/helpers/advanceToBlock'
-import {increaseTimeTo, duration} from '../zeppelin-solidity/test/helpers/increaseTime'
-import latestTime from '../zeppelin-solidity/test/helpers/latestTime'
-import EVMThrow from '../zeppelin-solidity/test/helpers/EVMThrow'
-import assertRevert from '../zeppelin-solidity/test/helpers/assertRevert';
-import expectThrow from '../zeppelin-solidity/test/helpers/expectThrow';
+import ether from '../test/helpers/ether'
+import {advanceBlock} from '../test/helpers/advanceToBlock'
+import {increaseTimeTo, duration} from '../test/helpers/increaseTime'
+import latestTime from '../test/helpers/latestTime'
+import EVMThrow from '../test/helpers/EVMThrow'
+import assertRevert from '../test/helpers/assertRevert';
+import expectThrow from '../test/helpers/expectThrow';
 //import EVMRevert from './helpers/EVMRevert';
 const BigNumber = web3.BigNumber
 
@@ -25,11 +25,11 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser]) {
   const value = ether(42)
   const cap = ether(300)
   const expectedTokenAmount = rate.mul(value)
-  const price_start = ether(0.0000015418947);
-  const price_adjustment = 458105300000;
+  const price_start = ether(0.01);
+  const price_adjustment = 0;
 
   
-  const price_constant = 400;
+  const price_constant = 15440;
   const price_exponent = 2;
   const weiToEth = 1000000000000000000
   const _initial_wallet_supply = new BigNumber(90000000);
@@ -102,15 +102,28 @@ contract('DutchAuction', function ([owner, investor, wallet, purchaser]) {
     console.log('Ether Price: 0 ' + price.dividedBy(weiToEth))  ;
     
     let newTime;
-
-    for (let i = 15; i <= 240; i += 15) {
-      this.newTime = this.startTime + duration.minutes(i);
+/* 
+    for (let i = 1; i <= 15; i++) {
+      this.newTime = this.startTime + duration.days(i);
       await increaseTimeTo(this.newTime);
       price = await this.dutchAuction.price();
-      console.log('\nTime: ' + i + ' ' + this.newTime)  ;
-      console.log('Price: ' + i + ' ' + price.dividedBy(weiToEth))  ;
+      //console.log('\nTime: ' + i + ' ' + this.newTime)  ;
+      //console.log('Price: ' + i + ' ' + price.dividedBy(weiToEth))  ;
       //console.log(price.dividedBy(weiToEth))  ;
-      
+      console.log(`\,{\"date\": \"${this.newTime}\", \"price\": \"${price.dividedBy(weiToEth)}\"}`);
+    } */ 
+
+    for (let i = 1; i <= 15; i++) {
+      this.newTime = this.startTime + duration.days(i);
+      await increaseTimeTo(this.newTime);
+      price = await this.dutchAuction.price();
+     // console.log('\nTime: ' + i + ' ' + this.newTime)  ;
+     // console.log('Price: ' + i + ' ' + price.dividedBy(weiToEth))  ;
+      //console.log(price.dividedBy(weiToEth))  ;
+     // {date: '2018-10-01', tokens: 100, price: 2}
+    // console.log(`\,{\"date\": \"${this.newTime}\", \"price\": \"${price.dividedBy(weiToEth)}\"}`);
+    // console.log(`\,{\"date\": \"${this.newTime}\", \"price\": \"${price}\"}`);
+     console.log(`${this.newTime}, ${price}`);
     } 
     console.log('\n==============================================\n')  ;
     return true;

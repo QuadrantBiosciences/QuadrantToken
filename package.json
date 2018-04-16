@@ -65,7 +65,8 @@
     "truffle-debugger": "^1.1.0",
     "truffle-hdwallet-provider": "0.0.3",
     "web3": "^0.20.5",
-    "web3-provider-engine": "^13.3.3"
+    "web3-provider-engine": "^13.3.3",
+    "zeppelin-solidity": "1.8.0"
   },
   "scripts": {
     "start": "node scripts/start.js",

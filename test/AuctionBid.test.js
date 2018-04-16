@@ -1,11 +1,11 @@
 
-import ether from '../zeppelin-solidity/test/helpers/ether'
-import {advanceBlock} from '../zeppelin-solidity/test/helpers/advanceToBlock'
-import {increaseTimeTo, duration} from '../zeppelin-solidity/test/helpers/increaseTime'
-import latestTime from '../zeppelin-solidity/test/helpers/latestTime'
-import EVMThrow from '../zeppelin-solidity/test/helpers/EVMThrow'
-import assertRevert from '../zeppelin-solidity/test/helpers/assertRevert';
-import expectThrow from '../zeppelin-solidity/test/helpers/expectThrow';
+import ether from '../test/helpers/ether'
+import {advanceBlock} from '../test/helpers/advanceToBlock'
+import {increaseTimeTo, duration} from '../test/helpers/increaseTime'
+import latestTime from '../test/helpers/latestTime'
+import EVMThrow from '../test/helpers/EVMThrow'
+import assertRevert from '../test/helpers/assertRevert';
+import expectThrow from '../test/helpers/expectThrow';
 //import EVMRevert from './helpers/EVMRevert';
 const BigNumber = web3.BigNumber
 
@@ -67,6 +67,7 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
   
    
     await this.QuadrantToken.addToWhitelist([this.DutchAuction.address],[0], [this.expiryDate] ,{from:owner})
+    await this.QuadrantToken.addToWhitelist([wallet],[0], [this.expiryDate] ,{from:owner})
 
     await this.DutchAuction.addUpdateCountryRules(1,ether(1),3) 
     await this.DutchAuction.addUpdateCountryRules(2,ether(11),10) 
@@ -196,6 +197,22 @@ contract('DutchAuction', function ([owner1, investor, wallet1, purchaser]) {
 
     console.log('wei_for_excedent :' + weiToEther(await this.DutchAuction.wei_for_excedent.call()))
     
+    //test for contract transfer balance amount to wallet
+    console.log('\nContract Ether Balance before transfer: ' + await web3.eth.getBalance(this.DutchAuction.address).dividedBy(weiToEth));
+    console.log('Wallet Ether Balance before transfer: ' + await web3.eth.getBalance(wallet).dividedBy(weiToEth));
+    await this.DutchAuction.transferContractBalanceToWallet({from:owner});
+    console.log('Contract Ether Balance after transfer: ' + await web3.eth.getBalance(this.DutchAuction.address).dividedBy(weiToEth));
+    console.log('Wallet Ether Balance after transfer: ' + await web3.eth.getBalance(wallet).dividedBy(weiToEth));
+
+    //test for balance token in contract to wallet 
+    console.log('\nContract token Balance before transfer: ' + await this.QuadrantToken.balanceOf.call(this.DutchAuction.address))
+    console.log('Wallet token Balance before transfer: ' + await this.QuadrantToken.balanceOf.call(wallet))
+    await this.DutchAuction.transferTokenBalanceToWallet({from:owner});
+    console.log('Contract token Balance after transfer: ' + await this.QuadrantToken.balanceOf.call(this.DutchAuction.address))
+    console.log('Wallet token Balance after transfer: ' + await this.QuadrantToken.balanceOf.call(wallet))
+
+
+
     await this.QuadrantToken.transfer(purchaser2,5000,{from:purchaser1})
 
     console.log('\nPurchaser 1 after token transfer: '+  await this.QuadrantToken.balanceOf.call(purchaser1))

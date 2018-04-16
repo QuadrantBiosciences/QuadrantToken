@@ -1,16 +1,16 @@
-import ether from './helpers/ether'
+import ether from '../test/helpers/ether'
 import {
   advanceBlock
-} from './helpers/advanceToBlock'
+} from '../test/helpers/advanceToBlock'
 import {
   increaseTimeTo,
   duration
-} from './helpers/increaseTime'
-import latestTime from './helpers/latestTime'
-import EVMThrow from './helpers/EVMThrow'
+} from '../test/helpers/increaseTime'
+import latestTime from '../test/helpers/latestTime'
+import EVMThrow from '../test/helpers/EVMThrow'
 const {
   expectThrow
-} = require('./helpers/util');
+} = require('../test/helpers/util');
 const BigNumber = web3.BigNumber
 
 const should = require('chai')
@@ -310,6 +310,16 @@ contract('QuadrantToken:', function ([deployOwner, investor, wallet, purchaser])
 
       expectThrow(this.token.transfer(accountaddress, new BigNumber(100)));
 
+    });
+    it('should throw an error when trying to transfer to a non whitelisted user', async function () {
+      await this.token.mint(deployOwner, 500);
+      await this.token.transfer(purchaser, 100, {from: deployOwner}).should.be.rejected
+    });
+    it('should not throw an error when trying to transfer to a whitelisted user', async function () {
+      await this.token.mint(deployOwner, 500);
+      await this.token.addToWhitelist([purchaser], [1],[this.expiryDate]  ,{from: deployOwner})
+      await this.token.unpause();
+      await this.token.transfer(purchaser, 100, {from: deployOwner}).should.not.be.rejected
     });
   })
 

@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
-import "../zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract Whitelister is Ownable {
 
@@ -43,18 +43,18 @@ contract Whitelister is Ownable {
     }
 
     function setExpiryDate(address _address, uint expiryDate) public isWhitelister {
-        var user = users[_address];
+        User storage user = users[_address];
         setUser(_address, user.countryCode, expiryDate, user.isRemoved);
     }
 
     function setResident(address _address, uint  countryCode) public isWhitelister {
-        var user = users[_address];
+        User storage user = users[_address];
         setUser(_address, countryCode, user.expiryDate, user.isRemoved);
     } 
 
     function setUser(address _address, uint countryCode, uint expiryDate, bool isRemoved) public isWhitelister  {
         
-        var user = users[_address];
+        User storage user = users[_address];
         if (user.expiryDate == 0) {
             whitelist.push(_address)-1;
         }
@@ -64,7 +64,7 @@ contract Whitelister is Ownable {
         if (user.isRemoved != isRemoved) {
             user.isRemoved = isRemoved;
         }
-        if (user.expiryDate < expiryDate || user.expiryDate == 0 ) {
+        if ( user.expiryDate < expiryDate || user.expiryDate == 0 ) {
             user.expiryDate = expiryDate;
         }
         
@@ -74,22 +74,7 @@ contract Whitelister is Ownable {
     function getWhitelist()  public view isWhitelister returns (address[]) {
         return whitelist;
     }
-    
-    function getUsers()  public view isWhitelister returns (address[], uint[], uint[]) {
-        address[] memory addrs = new address[](whitelist.length);
-        uint[]    memory countryCode = new uint[](whitelist.length);
-        uint[]    memory expiry = new uint[](whitelist.length);
         
-        for (uint i = 0; i < whitelist.length; i++) {
-            var user = users[whitelist[i]];
-            addrs[i] = whitelist[i];
-            countryCode[i] = user.countryCode;
-            expiry[i] = user.expiryDate;
-        }
-        
-        return (addrs, countryCode, expiry);
-    }
-
     function getUserResidentCountryCode(address ins)  public view returns (uint) {
         return (uint(users[ins].countryCode));
     }

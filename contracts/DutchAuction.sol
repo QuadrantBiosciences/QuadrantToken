@@ -1,13 +1,13 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "./QuadrantToken.sol";
-import "../zeppelin-solidity/contracts/lifecycle/Pausable.sol";
-import "../zeppelin-solidity/contracts/ownership/Ownable.sol";
-import "../zeppelin-solidity/contracts/math/SafeMath.sol";
+import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./Whitelister.sol";
 /// @title Dutch auction contract - distribution of a fixed number of tokens using an auction.
-/// The contract code is inspired by the Gnosis auction contract. Main difference is that the
-/// auction ends if a fixed number of tokens was sold.
+/// The auction contract code is based on the Raiden auction contract code.   Main differences are: we added rewards tiers to the auction;  
+/// we added country based rules to the auction; and we added an individual and full refund process.    
 
 
 contract DutchAuction is Pausable {
@@ -22,8 +22,9 @@ contract DutchAuction is Pausable {
     using SafeMath for uint;
 
     // Wait 7 days after the end of the auction, before anyone can claim tokens
-    uint constant public token_claim_waiting_period = 7 days;
-    uint constant public goal_plus_8 = 8 hours;
+    uint constant private token_claim_waiting_period = 7 days;
+    uint constant private goal_plus_8 = 8 hours;
+    uint constant private auction_duration = 14 days;
     
     //Bonus tiers and percentange bonus per tier  
     uint constant private tier1Time = 24 hours;
@@ -52,7 +53,7 @@ contract DutchAuction is Pausable {
     uint public price_constant;
 
     // Divisor exponent; e.g. 3
-    uint32 public price_exponent;
+    uint public price_exponent;
 
     //Price adjustment to make sure price doesn't go below pre auction investor price
     uint public price_adjustment = 0;
@@ -189,7 +190,7 @@ contract DutchAuction is Pausable {
         //owner_address = msg.sender;
         stage = Stages.AuctionDeployed;
         changeSettings(_price_start, _price_constant, _price_exponent, _price_adjustment, _goal);
-        Deployed(_price_start, _price_constant, _price_exponent, _price_adjustment);
+        emit Deployed(_price_start, _price_constant, _price_exponent, _price_adjustment);
     }
 
  /// @dev Fallback function for the contract, which calls bid() if the auction has started.
@@ -215,7 +216,7 @@ contract DutchAuction is Pausable {
         token_multiplier = 10 ** uint(token.decimals());
 
         stage = Stages.AuctionSetUp;
-        Setup();
+        emit Setup();
     }
 
     /// @notice Set `_price_start`, `_price_constant` and `_price_exponent` as
@@ -240,7 +241,7 @@ contract DutchAuction is Pausable {
         price_start = _price_start;
         price_constant = _price_constant;
         price_exponent = _price_exponent;
-        price_adjustment= _price_adjustment;
+        price_adjustment = _price_adjustment;
         goal = _goal;
     }
 
@@ -249,8 +250,9 @@ contract DutchAuction is Pausable {
     function startAuction() public onlyOwner atStage(Stages.AuctionSetUp) {
         stage = Stages.AuctionStarted;
         start_time = now;
+        end_time = now + auction_duration;
         start_block = block.number;
-        AuctionStarted(start_time, start_block);
+        emit AuctionStarted(start_time, start_block);
     }
 
     /// @notice Finalize the auction - sets the final QBI token price and changes the auction
@@ -262,7 +264,7 @@ contract DutchAuction is Pausable {
         uint tokensCommitted;
         uint bonusTokensCommitted;
         (balanceFunds, tokensCommitted, bonusTokensCommitted) = balanceFundsToEndAuction();
-        require(balanceFunds == 0 || tokensCommitted.add(bonusTokensCommitted) >= targetTokens.sub(goal));
+        require(balanceFunds == 0 || tokensCommitted.add(bonusTokensCommitted) >= goal || end_time < now );
 
         // Calculate the final price = WEI / QBI
         // Reminder: targetTokens is the number of QBI that are auctioned
@@ -271,7 +273,7 @@ contract DutchAuction is Pausable {
 
         end_time = now;
         stage = Stages.AuctionEnded;
-        AuctionEnded(final_price);
+        emit AuctionEnded(final_price);
 
         assert(final_price > 0);
     }
@@ -283,6 +285,7 @@ contract DutchAuction is Pausable {
     /// @dev Allows to send a bid to the auction.
     function bid() public payable atStage(Stages.AuctionStarted) whenNotPaused {
         
+        require(end_time >= now);    
         require((goal_time.add(goal_plus_8)) > now);    
         require(msg.value > 0);
         
@@ -309,9 +312,10 @@ contract DutchAuction is Pausable {
            bidAmount = balanceFunds;
         }
       
+        bool bidBefore = (bids[msg.sender] > 0);
         // We require bid values to be less than the funds missing to end the auction
         // at the current price.
-        require(bidAmount <= balanceFunds);
+        require((bidAmount <= balanceFunds) && bidAmount > 0);
 
         bids[msg.sender] += bidAmount;
         
@@ -326,21 +330,21 @@ contract DutchAuction is Pausable {
         }
         
         // increase the counter for no of bids from that country
-        if (userCountryCode > 0) {
+        if (userCountryCode > 0 && bidBefore == false) {
             countryRulesList[userCountryCode].bidCount = countryRulesList[userCountryCode].bidCount.add(1);
         }
         received_wei = received_wei.add(bidAmount);
         // Send bid amount to wallet
         wallet_address.transfer(bidAmount);
 
-        BidSubmission(msg.sender, bidAmount, balanceFunds);
+        emit BidSubmission(msg.sender, bidAmount, balanceFunds);
 
         assert(received_wei >= bidAmount);
       
 
         if (returnExcedent > 0) {
             msg.sender.transfer(returnExcedent);
-            ReturnedExcedent(msg.sender, returnExcedent);
+            emit ReturnedExcedent(msg.sender, returnExcedent);
         }
 
  
@@ -353,7 +357,7 @@ contract DutchAuction is Pausable {
         uint256 depositedValue = bids[msg.sender];
         require(refundValueForAll >= depositedValue);
         internalRefund(depositedValue);
-        refundValueForAll.sub(depositedValue);
+        refundValueForAll = refundValueForAll.sub(depositedValue);
     }
 
      // This is refund if for any reason, we refund particular individual's money
@@ -363,7 +367,7 @@ contract DutchAuction is Pausable {
         uint256 depositedValue = bids[msg.sender];
         require(refundValueForIndividuals >= depositedValue);
         internalRefund(depositedValue);
-        refundValueForIndividuals.sub(depositedValue);
+        refundValueForIndividuals = refundValueForIndividuals.sub(depositedValue);
 
     }
 
@@ -386,7 +390,7 @@ contract DutchAuction is Pausable {
         recievedTier2BonusWei = recievedTier2BonusWei.sub(depositedTier2Value);
         
         msg.sender.transfer(depositedValue);
-        Refunded(msg.sender, depositedValue);
+        emit Refunded(msg.sender, depositedValue);
      }
 
     /// @notice Claim auction tokens for `msg.sender` after the auction has ended.
@@ -439,19 +443,19 @@ contract DutchAuction is Pausable {
         // Due to the above logic, rounding errors will not be an issue
         if (funds_claimed == received_wei) {
             stage = Stages.TokensDistributed;
-            TokensDistributed();
+            emit TokensDistributed();
         }
 
         //assert(final_price > returnExcedent);
         if (returnExcedent > 0) {
             wei_for_excedent = wei_for_excedent.sub(returnExcedent);
             msg.sender.transfer(returnExcedent);            
-            ReturnedExcedent(msg.sender, returnExcedent);
+            emit ReturnedExcedent(msg.sender, returnExcedent);
         }
 
         assert(token.transfer(receiver_address, totalTokens));
         
-        ClaimedTokens(receiver_address, totalTokens);
+        emit ClaimedTokens(receiver_address, totalTokens);
 
         assert(token.balanceOf(receiver_address) >= totalTokens);
         
@@ -486,7 +490,7 @@ contract DutchAuction is Pausable {
     /// Returns `price_start` before auction has started.
     /// @dev Calculates the current QBI token price in WEI.
     /// @return Returns WEI per QBI.
-    function price() public constant returns (uint) {
+    function price() public view returns (uint) {
         if (stage == Stages.AuctionEnded ||
             stage == Stages.TokensDistributed) {
             return 0;
@@ -498,7 +502,7 @@ contract DutchAuction is Pausable {
     /// calculated at the current QBI price in WEI.
     /// @dev The missing funds amount necessary to end the auction at the current QBI price in WEI.
     /// @return Returns the missing funds amount in WEI.
-    function balanceFundsToEndAuction()  public constant returns (uint balanceFunds, uint tokensCommitted, uint bonusTokensCommitted) {
+    function balanceFundsToEndAuction()  public view returns (uint balanceFunds, uint tokensCommitted, uint bonusTokensCommitted) {
 
         uint tokenPrice = 0;
         // targetTokens = total number of Rei (QCOIN * token_multiplier) that is auctioned
@@ -524,7 +528,7 @@ contract DutchAuction is Pausable {
        // return (required_wei_at_price - received_wei, received_wei/tokenPrice);
     }
 
-    function tokenCommittedSoFar() public constant  returns (uint tokenPrice, uint tokensCommitted, uint bonusTokensCommitted, uint bonusWeiSoFar) {
+    function tokenCommittedSoFar() public view  returns (uint tokenPrice, uint tokensCommitted, uint bonusTokensCommitted, uint bonusWeiSoFar) {
         tokenPrice = price();
         tokensCommitted = received_wei.div(tokenPrice);
         //amount comitted in bonus
@@ -543,14 +547,8 @@ contract DutchAuction is Pausable {
         require (msg.value > 0);
         refundValueForAll = refundValueForAll.add(msg.value);
     }
-    ///change owner 
-    function changeOwner(address newOwner) public onlyOwner {
-        require(newOwner != 0);
-        owner = newOwner;
-    }
-   
-
-      /// @notice Adds account addresses to individual refund whitelist.
+    
+    /// @notice Adds account addresses to individual refund whitelist.
     /// @dev Adds account addresses to individual refund whitelist.
     /// @param _bidder_addresses Array of addresses.
     function addToRefundForIndividualsWhitelist(address[] _bidder_addresses) public onlyOwner  {
@@ -576,29 +574,34 @@ contract DutchAuction is Pausable {
   ///change Start Price  
     function changeStartPrice(uint priceStart) public onlyOwner {
         require(priceStart != 0);
+        require(stage == Stages.AuctionDeployed || stage == Stages.AuctionSetUp);
         price_start = priceStart;
     }
 
     ///change Price Constant  
     function changePriceConstant(uint priceConstant) public onlyOwner {
         require(priceConstant != 0);
+        require(stage == Stages.AuctionDeployed || stage == Stages.AuctionSetUp);
         price_constant = priceConstant;
     }
 
       ///change Price Exponent  
     function changePriceExponent(uint32 priceExponent) public onlyOwner {
         require(priceExponent != 0);
+        require(stage == Stages.AuctionDeployed || stage == Stages.AuctionSetUp);
         price_exponent = priceExponent;
     }
         ///change Price Exponent  
     function changePriceAdjustment(uint32 priceAdjustment) public onlyOwner {
         require(priceAdjustment != 0);
+        require(stage == Stages.AuctionDeployed || stage == Stages.AuctionSetUp);
         price_adjustment = priceAdjustment;
     }
     
    ///change Token Multiplier
-    function changetTokenMultiplier(uint32 tokenMultiplier) public onlyOwner {
+    function changeTokenMultiplier(uint32 tokenMultiplier) public onlyOwner {
         require(tokenMultiplier != 0);
+        require(stage == Stages.AuctionDeployed || stage == Stages.AuctionSetUp);
         token_multiplier = tokenMultiplier;
     }
     // start stop refund to everyone
@@ -611,21 +614,24 @@ contract DutchAuction is Pausable {
     }
     
     function transferContractBalanceToWallet() public onlyOwner {
-        wallet_address.transfer(this.balance);
+        wallet_address.transfer(address(this).balance);
+    }
+    function transferTokenBalanceToWallet() public onlyOwner {
+        assert(token.transfer(wallet_address, token.balanceOf(this)));
     }
     
-    function getBonusWei() private constant returns (uint) {
+    function getBonusWei() private view returns (uint) {
         // Returns effective Wei amount that gives the bidder bonus tokens
         uint tier1bonusWeiSoFar = (recievedTier1BonusWei.mul(tier1Bonus)).div(100);
         uint tier2bonusWeiSoFar = (recievedTier2BonusWei.mul(tier2Bonus)).div(100);
         return tier1bonusWeiSoFar.add(tier2bonusWeiSoFar);
     }
 
-    function isInTier1BonusTime() public constant returns(bool) {
+    function isInTier1BonusTime() public view returns(bool) {
         return (now <= start_time.add(tier1Time));
     }
 
-    function isInTier2BonusTime() public constant returns(bool) {
+    function isInTier2BonusTime() public view returns(bool) {
         return (now <= start_time.add(tier2Time));
     }
 
@@ -663,13 +669,13 @@ contract DutchAuction is Pausable {
     }
     ///add rules for a country  
     function addUpdateCountryRules(uint countryCode, uint minAmount, uint maxBids) public onlyOwner {
-        var countryRule = countryRulesList[countryCode];
+        CountryLimit storage countryLimit = countryRulesList[countryCode];
   
-        if (countryRule.minAmount != minAmount) {
-            countryRule.minAmount = minAmount;
+        if (countryLimit.minAmount != minAmount) {
+            countryLimit.minAmount = minAmount;
         }
-        if (countryRule.maxBids != maxBids) {
-            countryRule.maxBids = maxBids;
+        if (countryLimit.maxBids != maxBids) {
+            countryLimit.maxBids = maxBids;
         }
        
     }
@@ -705,15 +711,14 @@ contract DutchAuction is Pausable {
     /// only in first hours. This should be calculated before usage.
     /// @return Returns the token price - Wei per QBI.
 
-
-    function calcTokenPrice() private constant returns (uint) {
+    function calcTokenPrice() private view returns (uint) {
         uint elapsed;
         if (stage == Stages.AuctionStarted) {
-            elapsed = now - start_time;
+            elapsed = now.sub(start_time);
         }
         
-        uint decay_rate = elapsed ** price_exponent / price_constant;
-        return price_start * (1 + elapsed) / (1 + elapsed + decay_rate) + price_adjustment;
-    }  
+        uint decay_rate = (elapsed ** price_exponent).div(price_constant);
+        return (price_start.mul(elapsed.add(1)).div(elapsed.add(1).add(decay_rate))).add(price_adjustment);
+    }   
 }
 
